@@ -50,6 +50,7 @@ Examples:
 
 Set your API key (required):
 - `OPENROUTER_API_KEY` env var, or `--api-key <key>` flag.
+  - Flags are global, so you can place them before the subcommand if you prefer (e.g., `openrouter --api-key sk-... chat "Hello"`).
 
 Optional headers recommended by OpenRouter:
 - `OPENROUTER_REFERER` (or `--referer <url>`) – your site/app URL.

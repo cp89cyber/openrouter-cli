@@ -10,7 +10,8 @@ const program = new Command();
 program
   .name('openrouter')
   .description('CLI interface for models through OpenRouter')
-  .version(pkg.version);
+  .version(pkg.version)
+  .configureHelp({ showGlobalOptions: true });
 
 const addCommonOptions = (cmd) =>
   cmd
@@ -18,6 +19,8 @@ const addCommonOptions = (cmd) =>
     .option('--base-url <url>', 'Override API base URL', DEFAULT_BASE_URL)
     .option('--referer <url>', 'HTTP Referer header (OPENROUTER_REFERER)', process.env.OPENROUTER_REFERER)
     .option('--title <title>', 'X-Title header (OPENROUTER_TITLE)', process.env.OPENROUTER_TITLE);
+
+addCommonOptions(program);
 
 const normalizeBase = (url) => url.replace(/\/$/, '');
 
@@ -222,30 +225,34 @@ async function listModels(opts) {
   }
 }
 
-addCommonOptions(
-  program
-    .command('chat [prompt...]')
-    .description('Send a chat prompt to OpenRouter')
-    .option('-m, --model <id>', 'Model id to use', DEFAULT_MODEL)
-    .option('--system <text>', 'System prompt')
-    .option('-f, --file <path>', 'Read prompt from file')
-    .option('--stdin', 'Read prompt from stdin')
-    .option('--stream', 'Stream tokens as they arrive')
-    .option('--json', 'Print raw JSON response instead of message text')
-    .option('--json-mode', 'Request structured JSON from the model')
-    .option('--max-tokens <n>', 'Max tokens for completion', (v) => parseInt(v, 10))
-    .option('--temperature <n>', 'Sampling temperature', (v) => parseFloat(v))
-    .option('--top-p <n>', 'Nucleus sampling top-p', (v) => parseFloat(v))
-    .option('--quiet', 'Suppress usage line in non-JSON mode'))
-  .action((promptWords, opts) => doChat(promptWords, opts));
+program
+  .command('chat [prompt...]')
+  .description('Send a chat prompt to OpenRouter')
+  .option('-m, --model <id>', 'Model id to use', DEFAULT_MODEL)
+  .option('--system <text>', 'System prompt')
+  .option('-f, --file <path>', 'Read prompt from file')
+  .option('--stdin', 'Read prompt from stdin')
+  .option('--stream', 'Stream tokens as they arrive')
+  .option('--json', 'Print raw JSON response instead of message text')
+  .option('--json-mode', 'Request structured JSON from the model')
+  .option('--max-tokens <n>', 'Max tokens for completion', (v) => parseInt(v, 10))
+  .option('--temperature <n>', 'Sampling temperature', (v) => parseFloat(v))
+  .option('--top-p <n>', 'Nucleus sampling top-p', (v) => parseFloat(v))
+  .option('--quiet', 'Suppress usage line in non-JSON mode')
+  .action(function (promptWords) {
+    const opts = this.optsWithGlobals();
+    return doChat(promptWords, opts);
+  });
 
-addCommonOptions(
-  program
-    .command('models')
-    .description('List models available via OpenRouter')
-    .option('--search <term>', 'Filter models containing term (case-insensitive)')
-    .option('--limit <n>', 'Limit number of models shown', (v) => parseInt(v, 10))
-    .option('--json', 'Print raw JSON'))
-  .action((opts) => listModels(opts));
+program
+  .command('models')
+  .description('List models available via OpenRouter')
+  .option('--search <term>', 'Filter models containing term (case-insensitive)')
+  .option('--limit <n>', 'Limit number of models shown', (v) => parseInt(v, 10))
+  .option('--json', 'Print raw JSON')
+  .action(function () {
+    const opts = this.optsWithGlobals();
+    return listModels(opts);
+  });
 
 program.parseAsync(process.argv);
