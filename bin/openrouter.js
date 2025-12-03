@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const { promisify } = require('util');
+const { exec } = require('child_process');
 const { Command } = require('commander');
 const pkg = require('../package.json');
+const execAsync = promisify(exec);
 
 const DEFAULT_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
+const DEFAULT_YOLO_SYSTEM = `You are an autonomous terminal agent. To reach the goal you may ask to run shell commands.
+Reply ONLY with JSON using one of these shapes:
+{"action":"command","command":"<shell command>","comment":"<short reason>"}
+{"action":"finish","summary":"<what you accomplished>"}
+Do not wrap JSON in markdown or add extra text.`;
 
 const program = new Command();
 program
@@ -68,6 +76,22 @@ function buildHeaders(opts) {
 function handleError(err) {
   console.error(`Error: ${err.message}`);
   process.exit(1);
+}
+
+async function runShell(command, shellOverride) {
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      shell: shellOverride || process.env.SHELL || '/bin/bash',
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return { stdout: stdout ?? '', stderr: stderr ?? '', code: 0 };
+  } catch (err) {
+    return {
+      stdout: err.stdout ?? '',
+      stderr: err.stderr ?? err.message ?? '',
+      code: typeof err.code === 'number' ? err.code : 1,
+    };
+  }
 }
 
 function outputChat(json, opts) {
@@ -181,6 +205,89 @@ async function doChat(promptWords, opts) {
   }
 }
 
+async function doYolo(goalWords, opts) {
+  try {
+    const goal = await resolvePrompt(goalWords, opts);
+    const baseUrl = normalizeBase(opts.baseUrl || DEFAULT_BASE_URL);
+    const headers = buildHeaders(opts);
+    const model = opts.model || DEFAULT_MODEL;
+    const maxSteps = Number.isInteger(opts.maxSteps) && opts.maxSteps > 0 ? opts.maxSteps : 8;
+    const systemPrompt = opts.system || DEFAULT_YOLO_SYSTEM;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Goal: ${goal}` },
+    ];
+
+    for (let step = 1; step <= maxSteps; step++) {
+      const body = {
+        model,
+        messages,
+        stream: false,
+        response_format: { type: 'json_object' },
+      };
+
+      if (typeof opts.temperature === 'number' && !Number.isNaN(opts.temperature)) body.temperature = opts.temperature;
+      if (typeof opts.topP === 'number' && !Number.isNaN(opts.topP)) body.top_p = opts.topP;
+      if (typeof opts.maxTokens === 'number' && !Number.isNaN(opts.maxTokens)) body.max_tokens = opts.maxTokens;
+
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`API responded ${res.status}: ${text || res.statusText}`);
+      }
+
+      const json = await res.json();
+      const content = json?.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No message content returned.');
+
+      let plan;
+      try {
+        plan = JSON.parse(content);
+      } catch (err) {
+        throw new Error(`Step ${step}: Model did not return valid JSON: ${content}`);
+      }
+
+      messages.push({ role: 'assistant', content });
+
+      if (plan.action === 'finish') {
+        if (plan.summary) console.log(plan.summary.trim());
+        else console.log('Finished.');
+        return;
+      }
+
+      if (plan.action !== 'command' || !plan.command) {
+        throw new Error(`Step ${step}: Model response missing command to run.`);
+      }
+
+      if (plan.comment) console.error(`Reason: ${plan.comment}`);
+      console.error(`[YOLO step ${step}] ${plan.command}`);
+
+      const result = await runShell(plan.command, opts.shell);
+      if (result.stdout) process.stdout.write(result.stdout);
+      if (result.stderr) process.stderr.write(result.stderr);
+
+      messages.push({
+        role: 'user',
+        content: `command: ${plan.command}\nexitCode: ${result.code}\nstdout:\n${result.stdout || '(empty)'}\nstderr:\n${result.stderr || '(empty)'}`,
+      });
+
+      if (result.code !== 0) {
+        console.error(`Command exited with code ${result.code}; continuing conversation.`);
+      }
+    }
+
+    console.error(`Max steps reached (${maxSteps}) without a finish action.`);
+  } catch (err) {
+    handleError(err);
+  }
+}
+
 async function listModels(opts) {
   try {
     const baseUrl = normalizeBase(opts.baseUrl || DEFAULT_BASE_URL);
@@ -242,6 +349,23 @@ program
   .action(function (promptWords) {
     const opts = this.optsWithGlobals();
     return doChat(promptWords, opts);
+  });
+
+program
+  .command('yolo [goal...]')
+  .description('Autonomous mode that lets the model run shell commands (unsafe)')
+  .option('-m, --model <id>', 'Model id to use', DEFAULT_MODEL)
+  .option('--system <text>', 'Override the system prompt used for autonomy')
+  .option('-f, --file <path>', 'Read goal from file')
+  .option('--stdin', 'Read goal from stdin')
+  .option('--max-steps <n>', 'Limit number of command iterations', (v) => parseInt(v, 10))
+  .option('--temperature <n>', 'Sampling temperature', (v) => parseFloat(v))
+  .option('--top-p <n>', 'Nucleus sampling top-p', (v) => parseFloat(v))
+  .option('--max-tokens <n>', 'Max tokens for each model reply', (v) => parseInt(v, 10))
+  .option('--shell <path>', 'Shell to execute commands with (default $SHELL or /bin/bash)')
+  .action(function (goalWords) {
+    const opts = this.optsWithGlobals();
+    return doYolo(goalWords, opts);
   });
 
 program

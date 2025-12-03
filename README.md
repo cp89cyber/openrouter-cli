@@ -38,6 +38,22 @@ Useful flags:
 - `--json-mode` ask the model for structured JSON (`response_format: json_object`)
 - `--temperature <n>`, `--top-p <n>`, `--max-tokens <n>` sampling controls
 
+### `openrouter yolo`
+Run in fully autonomous "YOLO" mode where the model can issue shell commands to reach a goal. **This is unsafe by design**: commands are executed immediately with no confirmation, so use a disposable environment.
+
+Examples:
+- `openrouter yolo "clone the repo and list test files"`
+- `openrouter yolo --max-steps 5 "find all TODOs in src"`
+- `openrouter yolo --system "Be extremely cautious" "summarize the git status"`
+
+Useful flags:
+- `-m, --model <id>` (default `openrouter/auto`)
+- `--system <text>` override the autonomy system prompt
+- `-f, --file <path>` or `--stdin` to feed the goal
+- `--max-steps <n>` cap how many commands are executed (default 8)
+- `--shell <path>` choose which shell to run (defaults to `$SHELL` or `/bin/bash`)
+- `--temperature <n>`, `--top-p <n>`, `--max-tokens <n>` model controls
+
 ### `openrouter models`
 List available models (requires the same auth headers).
 
