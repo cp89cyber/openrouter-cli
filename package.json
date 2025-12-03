@@ -1,0 +1,21 @@
+{
+  "name": "openrouter-cli",
+  "version": "0.1.0",
+  "description": "CLI interface for models through OpenRouter",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "openrouter": "bin/openrouter.js",
+    "or": "bin/openrouter.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "lint": "echo 'No linter configured'",
+    "test": "echo 'No tests configured'"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
+}
