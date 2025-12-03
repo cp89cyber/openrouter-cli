@@ -123,7 +123,11 @@ function outputChat(json, opts) {
   const message = json?.choices?.[0]?.message?.content;
   if (message) {
     console.log(message.trim());
-    printAnnotations(json?.choices?.[0]?.message?.annotations, opts);
+    const annotations = json?.choices?.[0]?.message?.annotations;
+    const webResults = json?.web_search?.results
+      || json?.web_search_results
+      || json?.choices?.[0]?.message?.web_search_results;
+    printSources({ annotations, webResults }, opts);
   } else {
     console.log('No message content returned.');
   }
@@ -143,6 +147,7 @@ async function streamResponse(res, opts) {
   const decoder = new TextDecoder();
   let buffer = '';
   const annotations = [];
+  const webResults = [];
   for await (const chunk of res.body) {
     buffer += decoder.decode(chunk, { stream: true });
     const parts = buffer.split('\n\n');
@@ -164,6 +169,10 @@ async function streamResponse(res, opts) {
         if (delta) process.stdout.write(delta);
         const anns = payload?.choices?.[0]?.delta?.annotations || payload?.choices?.[0]?.message?.annotations;
         if (Array.isArray(anns)) annotations.push(...anns);
+        const wr = payload?.web_search?.results
+          || payload?.web_search_results
+          || payload?.choices?.[0]?.message?.web_search_results;
+        if (Array.isArray(wr)) webResults.push(...wr);
       } catch (err) {
         // Ignore malformed chunks but keep going
       }
@@ -181,6 +190,10 @@ async function streamResponse(res, opts) {
           if (delta) process.stdout.write(delta);
           const anns = payload?.choices?.[0]?.delta?.annotations || payload?.choices?.[0]?.message?.annotations;
           if (Array.isArray(anns)) annotations.push(...anns);
+          const wr = payload?.web_search?.results
+            || payload?.web_search_results
+            || payload?.choices?.[0]?.message?.web_search_results;
+          if (Array.isArray(wr)) webResults.push(...wr);
         }
       } catch (err) {
         // ignore
@@ -189,24 +202,39 @@ async function streamResponse(res, opts) {
   }
   if (!opts.json) {
     process.stdout.write('\n');
-    printAnnotations(annotations, opts);
+    printSources({ annotations, webResults }, opts);
   }
 }
 
-function printAnnotations(rawAnnotations, opts) {
+function printSources({ annotations, webResults }, opts) {
   if (opts?.quiet) return;
-  if (!Array.isArray(rawAnnotations) || rawAnnotations.length === 0) return;
 
-  const seen = new Set();
   const items = [];
+  const seen = new Set();
 
-  rawAnnotations.forEach((ann) => {
-    if (ann?.type !== 'url_citation' || !ann.url_citation?.url) return;
-    const { url, title, content } = ann.url_citation;
-    if (seen.has(url)) return;
-    seen.add(url);
-    items.push({ url, title, content });
-  });
+  // Convert citations the model emits
+  if (Array.isArray(annotations)) {
+    annotations.forEach((ann) => {
+      if (ann?.type !== 'url_citation') return;
+      const nested = ann.url_citation;
+      const url = nested?.url || ann.url;
+      const title = nested?.title || ann.title;
+      const content = nested?.content || ann.content;
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      items.push({ url, title, content });
+    });
+  }
+
+  // Fallback to raw web search results (some models put them here instead of annotations)
+  if (Array.isArray(webResults)) {
+    webResults.forEach((r) => {
+      const url = r.url;
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      items.push({ url, title: r.title, content: r.snippet || r.content });
+    });
+  }
 
   if (!items.length) return;
 

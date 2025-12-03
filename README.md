@@ -39,7 +39,7 @@ Useful flags:
 - `--json-mode` ask the model for structured JSON (`response_format: json_object`)
 - `--web` enable OpenRouter's built-in web search plugin (or `--online` to append `:online` to the model id)
 - `--web-engine <auto|native|exa>`, `--web-max-results <n>`, `--web-search-prompt <text>` tune web search behaviour
-- When web search is used, sources are printed after the answer so you can see proof of the fetched pages
+- When web search is used, sources are printed after the answer (even in `--stream` mode) so you can see proof of the fetched pages
 - `--temperature <n>`, `--top-p <n>`, `--max-tokens <n>` sampling controls
 
 ### `openrouter yolo`
