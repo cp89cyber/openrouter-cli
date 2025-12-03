@@ -16,7 +16,6 @@ Do not wrap JSON in markdown or add extra text.`;
 
 const YOLO_BETA_WARNING = `
 ===============================================================================
-===  H U G E   S C A R Y   H O R R I F Y I N G   W A R N I N G  ===============
 ===  YOLO MODE IS A DANGEROUS BETA THAT WILL RUN ARBITRARY SHELL COMMANDS!   ===
 ===  IT CAN DELETE FILES, EXFILTRATE SECRETS, OR CORRUPT YOUR SYSTEM.         ===
 ===  USE ONLY IN THROWAWAY/SANDBOXED ENVIRONMENTS.                            ===
