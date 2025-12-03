@@ -45,6 +45,16 @@ Useful flags:
 ### `openrouter yolo`
 Run in fully autonomous "YOLO" mode where the model can issue shell commands to reach a goal. **This is unsafe by design**: commands are executed immediately with no confirmation, so use a disposable environment.
 
+```
+===============================================================================
+===  H U G E   S C A R Y   H O R R I F Y I N G   W A R N I N G  ===============
+===  YOLO MODE IS A DANGEROUS BETA THAT WILL RUN ARBITRARY SHELL COMMANDS!   ===
+===  IT CAN DELETE FILES, EXFILTRATE SECRETS, OR CORRUPT YOUR SYSTEM.         ===
+===  USE ONLY IN THROWAWAY/SANDBOXED ENVIRONMENTS.                            ===
+===  IF YOU ARE NOT ABSOLUTELY SURE, ABORT NOW WITH CTRL+C.                   ===
+===============================================================================
+```
+
 Examples:
 - `openrouter yolo "clone the repo and list test files"`
 - `openrouter yolo --max-steps 5 "find all TODOs in src"`

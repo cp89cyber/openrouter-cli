@@ -14,6 +14,16 @@ Reply ONLY with JSON using one of these shapes:
 {"action":"finish","summary":"<what you accomplished>"}
 Do not wrap JSON in markdown or add extra text.`;
 
+const YOLO_BETA_WARNING = `
+===============================================================================
+===  H U G E   S C A R Y   H O R R I F Y I N G   W A R N I N G  ===============
+===  YOLO MODE IS A DANGEROUS BETA THAT WILL RUN ARBITRARY SHELL COMMANDS!   ===
+===  IT CAN DELETE FILES, EXFILTRATE SECRETS, OR CORRUPT YOUR SYSTEM.         ===
+===  USE ONLY IN THROWAWAY/SANDBOXED ENVIRONMENTS.                            ===
+===  IF YOU ARE NOT ABSOLUTELY SURE, ABORT NOW WITH CTRL+C.                   ===
+===============================================================================
+`;
+
 const program = new Command();
 program
   .name('openrouter')
@@ -295,6 +305,7 @@ async function doChat(promptWords, opts) {
 async function doYolo(goalWords, opts) {
   try {
     const goal = await resolvePrompt(goalWords, opts);
+    console.error(YOLO_BETA_WARNING);
     const baseUrl = normalizeBase(opts.baseUrl || DEFAULT_BASE_URL);
     const headers = buildHeaders(opts);
     const model = opts.online ? ensureOnlineSuffix(opts.model || DEFAULT_MODEL) : (opts.model || DEFAULT_MODEL);
@@ -448,7 +459,7 @@ program
 
 program
   .command('yolo [goal...]')
-  .description('Autonomous mode that lets the model run shell commands (unsafe)')
+  .description('Autonomous mode that lets the model run shell commands (DANGEROUS BETA — READ WARNING)')
   .option('-m, --model <id>', 'Model id to use', DEFAULT_MODEL)
   .option('--system <text>', 'Override the system prompt used for autonomy')
   .option('-f, --file <path>', 'Read goal from file')
