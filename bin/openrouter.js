@@ -7,7 +7,7 @@ const pkg = require('../package.json');
 const execAsync = promisify(exec);
 
 const DEFAULT_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/auto';
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'x-ai/grok-4.1-fast:free';
 const DEFAULT_YOLO_SYSTEM = `You are an autonomous terminal agent. To reach the goal you may ask to run shell commands.
 Reply ONLY with JSON using one of these shapes:
 {"action":"command","command":"<shell command>","comment":"<short reason>"}

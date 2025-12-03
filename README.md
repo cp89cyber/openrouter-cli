@@ -29,7 +29,7 @@ Examples:
 - Raw API JSON: `openrouter chat "Explain transformers" --json`
 
 Useful flags:
-- `-m, --model <id>` (default `openrouter/auto` or `OPENROUTER_MODEL`)
+- `-m, --model <id>` (default `x-ai/grok-4.1-fast:free` or `OPENROUTER_MODEL`)
 - `--system <text>` add a system prompt
 - `-f, --file <path>` read prompt from a file
 - `--stdin` read prompt from STDIN (also auto-detected when piped)
@@ -47,7 +47,7 @@ Examples:
 - `openrouter yolo --system "Be extremely cautious" "summarize the git status"`
 
 Useful flags:
-- `-m, --model <id>` (default `openrouter/auto`)
+- `-m, --model <id>` (default `x-ai/grok-4.1-fast:free`)
 - `--system <text>` override the autonomy system prompt
 - `-f, --file <path>` or `--stdin` to feed the goal
 - `--max-steps <n>` cap how many commands are executed (default 8)
